@@ -4,28 +4,28 @@
  */
 
 var express = require('express'),
-    http = require('http'),
+    //http = require('http'),
     path = require('path'),
     restful = require('node-restful'),
     mongoose = restful.mongoose,
     models = require('./models');
 
-var app = express();
+var app = exports.app = express();
 
 // all environments
-app.set('port', process.env.PORT || 3000);
-app.use(express.favicon());
-app.use(express.logger('dev'));
-app.use(express.bodyParser());
-app.use(express.methodOverride());
-app.use(app.router);
-app.use(express.static(path.join(__dirname, 'public')));
+app.set('port', process.env.PORT || 3000)
+    .use(express.favicon())
+    .use(express.logger('dev'))
+    .use(express.bodyParser())
+    .use(express.methodOverride())
+    .use(exports.app.router)
+    .use(express.static(path.join(__dirname, 'public')));
 
 // database
 mongoose.connect('mongodb://localhost/node_restful_tester');
 
 // development only
-if ('development' == app.get('env')) {
+if ('development' == exports.app.get('env')) {
   app.use(express.errorHandler());
   mongoose.set('debug', true);
 }
@@ -34,6 +34,15 @@ if ('development' == app.get('env')) {
 models.User.methods(['get', 'post', 'put', 'delete'])
            .register(app, '/api/users');
 
-http.createServer(app).listen(app.get('port'), function(){
-  console.log('Express server listening on port ' + app.get('port'));
-});
+var start = exports.start = function(app, startCallback) {
+    var http = require('http');
+    http.createServer(app).listen(app.get('port'), function(){
+      startCallback();
+    });
+};
+
+if (require.main === module) {
+    start(app, function() {
+        console.log('Express server listening on port ' + app.get('port'));
+    });
+}
